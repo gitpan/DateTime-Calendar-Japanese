@@ -7,5 +7,6 @@ MANIFEST
 META.yml
 t/01-sanity.t
 t/02-time.t
+t/03-era.t
 
 SIGNATURE    Added here by Module::Build

@@ -1,6 +1,14 @@
 Changes
 =======
 
+0.03 04 Feb 2004
+  - Fix constructing with, and setting Japanese time components.
+    (previously from_*() constructors would correctly calculate the
+    time, but setting it or creating DT::C::Japanese with the time
+    components didn't force a re-calculation of the underlying time)
+  - Accomodate for fixes in DateTime::Calendar::Japanese::Era 0.04
+  - Doc tweaks
+
 0.02 24 Jan 2004
   - Set default time zone to "Asia/Tokyo"
   - Require DateTime::Calendar::Chinese 0.02, which fixes a lot of bugs

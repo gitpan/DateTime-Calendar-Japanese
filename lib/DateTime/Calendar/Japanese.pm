@@ -3,7 +3,7 @@ use strict;
 use vars qw(@ISA $VERSION);
 BEGIN
 {
-    $VERSION = '0.02';
+    $VERSION = '0.03';
     @ISA     = qw(DateTime::Calendar::Chinese);
 }
 use DateTime;
@@ -122,12 +122,21 @@ sub new
 #        $args{cycle_year} = $cycle_year;
     }
 
-    my($hour, $hour_quarter) = (delete $args{hour}, delete $args{hour_quarter});
+    my $adjust_time = 0;
+    my ($hour, $hour_quarter);
+    if (exists $args{hour} or $args{hour_quarter}) {
+        ($hour, $hour_quarter) = (delete $args{hour}, delete $args{hour_quarter});
+        $adjust_time = 1;
+    }
+
     my $self = $class->SUPER::new(%args);
-    $self->{hour}         = $hour;
-    $self->{hour_quarter} = $hour_quarter;
     $self->_calc_era_components();
-    $self->_calc_time_components();
+
+    if ($adjust_time) {
+        $self->_adjust_time_components($hour, $hour_quarter);
+#    } else {
+#        $self->_calc_time_components();
+    }
     return $self;
 }
 
@@ -190,6 +199,19 @@ sub _calc_era_components
     }
 }
 
+sub _calc_canonical_hour
+{
+    my $self = shift;
+    my $hour = $self->hour;
+    if (!defined($hour)) {
+        Carp::confess("hour is undefined!");
+    }
+    $self->{canonical_hour} =
+        ($hour > 3 && $hour < 10) ? 9 - ($hour - 4) :
+        ($hour < 4)               ? 6 - ($hour - 3) :
+                                    9 - ($hour - 10);
+}
+
 sub _calc_time_components
 {
     my $self = shift;
@@ -226,11 +248,68 @@ sub _calc_time_components
         _calc_japanese_time($dt, $base_dt, $max_dt, $base_hour);
 
     $self->{hour}           = $hour;
-    $self->{canonical_hour} =
-        ($hour > 3 && $hour < 10) ? 9 - ($hour - 4) :
-        ($hour < 4)               ? 6 - ($hour - 3) :
-                                    9 - ($hour - 10);
     $self->{hour_quarter}   = $hour_quarter;
+    $self->_calc_canonical_hour();
+}
+
+sub _adjust_time_components
+{
+    my ($self, $hour, $hour_quarter) = @_;
+
+    my $dt = $self->{gregorian};
+
+    # XXX - hmmm, probably not kosher to do this.
+    my $sunrise = DateTime::Event::Sunrise->_new(%BaseLocation);
+    my($rise_dt, $set_dt) = $sunrise->_sunrise($dt);
+
+    # first try a straight forward calculation. but
+    # if the time is post midnight, then we calculate it from the
+    # day before, so we can specify the time before sunrise
+
+    my($new_dt, $base_dt, $hour_add_amount, $quarter_add_amount);
+
+    if ($hour > 6) {
+        my $one_hour     = (
+            ($rise_dt + DateTime::Duration->new(days => 1)) - $set_dt
+        )->multiply(1/6);
+        my $quarter_hour = $one_hour * 0.25;
+        $base_dt    = $set_dt;
+        if ($hour > 1) {
+            $hour_add_amount = ($hour - 7) * $one_hour;
+        }
+        if ($hour_quarter > 1) {
+            $quarter_add_amount = ($hour_quarter - 1) * $quarter_hour;
+        }
+    } else {
+        my $one_hour     = ($set_dt - $rise_dt)->multiply(1/6);
+        my $quarter_hour = $one_hour * 0.25;
+        $base_dt = $rise_dt;
+        if ($hour > 1) {
+            $hour_add_amount += ($hour - 1) * $one_hour;
+        }
+        if ($hour_quarter > 1) {
+            $quarter_add_amount += ($hour_quarter - 1) * $quarter_hour;
+        }
+    }
+
+    $new_dt = $base_dt;
+    if ($hour_add_amount) {
+        $new_dt += $hour_add_amount;
+    }
+    if ($quarter_add_amount) {
+        $new_dt += $quarter_add_amount;
+    }
+
+    # if this date goes over today, then pull back one day
+    my $next_day = $dt->clone->truncate(to => 'day')->add(days => 1);
+    if ($new_dt >= $next_day) {
+        $new_dt->subtract(days => 1);
+    }
+
+    $self->{gregorian}    = $new_dt;
+    $self->{hour}         = $hour;
+    $self->{hour_quarter} = $hour_quarter;
+    $self->_calc_canonical_hour();
 }
 
 sub _calc_japanese_time
@@ -264,6 +343,11 @@ sub _calc_japanese_time
             }
         }
     }
+
+    if (!defined($hour) || !defined($hour_quarter)) {
+        Carp::confess("hour or hour_quarter is undefined!");
+    }
+
     return($hour, $hour_quarter);
 }
 
@@ -294,12 +378,21 @@ sub set
 
         @args{ qw(cycle cycle_year) } = _era2cycle($era_name, $era_year);
     }
-    my($hour, $hour_quarter) = (delete $args{hour}, delete $args{hour_quarter});
+
+    my $adjust_time = 0;
+    my ($hour, $hour_quarter);
+    if (exists $args{hour} or exists $args{hour_quarter}) {
+        $hour         = delete $args{hour} || $self->hour;
+        $hour_quarter = delete $args{hour_quarter} || $self->hour_quarter;
+        $adjust_time = 1;
+    }
+
     $self->SUPER::set(%args);
-    $self->{hour}         = $hour;
-    $self->{hour_quarter} = $hour_quarter;
     $self->_calc_era_components();
-    $self->_calc_time_components();
+
+    if ($adjust_time) {
+        $self->_adjust_time_components($hour, $hour_quarter);
+    }
 }
 
 1;
@@ -354,13 +447,24 @@ DateTime::Calendar::Japanese - DateTime Extension for Traditional Japanese Calen
 
 This module implements the traditional Japanese Calendar, which was used
 from circa 692 A.D. to 1867 A.D. The traditional Japanese Calendar is a
-lunisolar calendar based on the Chinese Calendar. 
+I<lunisolar calendar> based on the Chinese Calendar, and therefore
+this module may *not* be used for handling or formatting modern Japanese
+calendars which are Gregorian Calendars with a twist.
+Please use DateTime::Format::Japanese for that purpose.
 
 On top of the lunisolar calendar, this module implements a simple time
 system used in the Edo period, which is a type of temporal hour system, 
 based on sunrise and sunset.
 
 =head1 CAVEATS/DISCLAIMERS
+
+=head2 SPEED
+
+This module is based on L<DateTime::Calendar::Chinese>, which in turn is
+based on positions of the Moon and the Sun. Calculations of this sort is
+definitely not Perl's forte, and therefore this module is *very* slow.
+
+Help is much appreciated to rectify this :)
 
 =head2 CALENDAR "VERSION"
 
@@ -377,26 +481,19 @@ latest incarnation of these calendars.
 Even though this module can handle modern dates, note that this module
 creates dates in the *traditional* calendar, NOT the modern gregorian
 calendar used in Japane since the Meiji era. Yet, we must honor the gregorian
-date in which an era started or ended. This means that the era  year
-calculations will probably be off from what you'd expect on a modern
-calendar.
+date in which an era started or ended. This means that the era year
+calculations could be off from what you'd expect on a modern calendar.
 
-For example the following date is *NOT* Heisei 16, it's Heisei 15:
-
-  # this is gregorian
-  my $dt = DateTime->new(year => 2004, month => 1, day => 1);
-  my $jp = DateTime::Calendar::Japanese->from_object(object => $dt);
-  print "Era year: ", $jp->era_year, "\n";
-
-Why? Because we haven't yet reached the Chinese New Year for that sui
-(which is on 22 Jan, 2004). Of course, if this was a modern calendar,
-we would increment the year on 1 Jan 2004, but since it's technically
-the same year in this calendar, we can't increment the year.
+For example, the Heisei era starts on 08 Jan 1989 (Gregorian), so in a 
+modern calendar you would expect the rest of year 1989 to be Heisei 1.
+However, the Chinese New Year happens to fall on 06 Feb 1989. Thus
+this module would see that and increment the era year by one on that
+date.
 
 If you want to express modern Japanese calendars, you will need to use
-a DateTime::Format:: module on the vanilla DateTime object. 
-(As of this writing there is no DateTime::Format::Japanese on CPAN, but
-if nobody gets around to it, I plan on implementing it one of these days)
+L<DateTime::Format::Japanese> module on the vanilla DateTime object. 
+(As of this writing DateTime::Format::Japanese is in alpha release. Use
+at your own peril)
 
 =head2 TIME COMPONENTS
 
@@ -500,8 +597,15 @@ rest of the parameters are the same, and they are: "month", "leap_month",
   # DateTime::Calendar::Chinese style
   my $dt = DateTime::Calendar::Japanese->new(
     cycle        => 78,
-    cycle_year   => 20
+    cycle_year   => 20,
+    month        => 3,
+    day          => 4,
+    hour         => 4,
+    hour_quarter => 3
   );
+
+See the documentation for DateTime::Calendar::Chinese for the semantics
+of cycle and cycle_year
  
 =head2 now
 
@@ -549,6 +653,10 @@ not 64. See L<CAVEATS|/ERA DISCREPANCIES FROM MODERN JAPANESE DATES>
 Returns the hour, based on the traditional Japanese time system. The
 hours are encoded from 1 to 12 to uniquely qulaify them. However, you
 can get the canonical hour by using the canonical_hour() method
+
+1 is the time of sunrise, somewhere around 5am to 6am, depending on the
+time of the year (This means that hour 12 on a given date is actually BEFORE
+hour 1)
 
 =head2 canonical_hour
 

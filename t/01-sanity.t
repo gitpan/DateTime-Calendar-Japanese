@@ -51,7 +51,7 @@ sub check_cc
     is($cc->month, $month);
     is($cc->day, $day);
     is($cc->day_of_week, $day_of_week);
-    
+
     my @vals = $cc->utc_rd_values();
     is($vals[0], $rd);
 }

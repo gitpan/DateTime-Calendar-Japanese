@@ -8,7 +8,7 @@ my $build = Module::Build->new(
     requires => {
         'DateTime'                          => 0,
         'DateTime::Calendar::Chinese'       => '0.02',
-        'DateTime::Calendar::Japanese::Era' => 0,
+        'DateTime::Calendar::Japanese::Era' => '0.04',
         'DateTime::Event::Sunrise'          => 0,
         'Params::Validate'                  => 0,
     },
