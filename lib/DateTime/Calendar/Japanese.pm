@@ -3,7 +3,7 @@ use strict;
 use vars qw(@ISA $VERSION);
 BEGIN
 {
-    $VERSION = '0.04';
+    $VERSION = '0.05';
     @ISA     = qw(DateTime::Calendar::Chinese);
 }
 use DateTime;
@@ -286,10 +286,10 @@ sub _adjust_time_components
         my $quarter_hour = $one_hour * 0.25;
         $base_dt = $rise_dt;
         if ($hour > 1) {
-            $hour_add_amount += ($hour - 1) * $one_hour;
+            $hour_add_amount = ($hour - 1) * $one_hour;
         }
         if ($hour_quarter > 1) {
-            $quarter_add_amount += ($hour_quarter - 1) * $quarter_hour;
+            $quarter_add_amount = ($hour_quarter - 1) * $quarter_hour;
         }
     }
 

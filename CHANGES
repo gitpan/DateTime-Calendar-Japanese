@@ -1,6 +1,9 @@
 Changes
 =======
 
+0.05 08 Feb 2004
+  - Fixed buglet when specifying hour < 6
+
 0.04 05 Feb 2004
   - Bad boy Daisuke used an internal method from DateTime::Event::Sunrise,
     and didn't fix the dependencies for new interfacein DT::E::Sunrise 0.05

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: DateTime-Calendar-Japanese
-version: 0.04
+version: 0.05
 author:
   - Daisuke Maki E<lt>daisuke@cpan.orgE<gt>
 abstract: |-
@@ -19,5 +19,5 @@ conflicts: {}
 provides:
   DateTime::Calendar::Japanese:
     file: lib/DateTime/Calendar/Japanese.pm
-    version: 0.04
+    version: 0.05
 generated_by: Module::Build version 0.22
