@@ -3,7 +3,7 @@ use strict;
 use vars qw(@ISA $VERSION);
 BEGIN
 {
-    $VERSION = '0.03';
+    $VERSION = '0.04';
     @ISA     = qw(DateTime::Calendar::Chinese);
 }
 use DateTime;
@@ -219,8 +219,9 @@ sub _calc_time_components
     my $dt = $self->{gregorian};
 
     # XXX - hmmm, probably not kosher to do this.
-    my $sunrise = DateTime::Event::Sunrise->_new(%BaseLocation);
-    my($rise_dt, $set_dt) = $sunrise->_sunrise($dt);
+    my $sunrise = DateTime::Event::Sunrise->new(%BaseLocation);
+    my $span    = $sunrise->sunrise_sunset_span($dt);
+    my($rise_dt, $set_dt) = ($span->start, $span->end);
 
     # We don't recompute if the time falls before or after the
     # given rise_dt and set_dt, because the times doesn't change
@@ -258,9 +259,9 @@ sub _adjust_time_components
 
     my $dt = $self->{gregorian};
 
-    # XXX - hmmm, probably not kosher to do this.
-    my $sunrise = DateTime::Event::Sunrise->_new(%BaseLocation);
-    my($rise_dt, $set_dt) = $sunrise->_sunrise($dt);
+    my $sunrise = DateTime::Event::Sunrise->new(%BaseLocation);
+    my $span    = $sunrise->sunrise_sunset_span($dt);
+    my($rise_dt, $set_dt) = ($span->start, $span->end);
 
     # first try a straight forward calculation. but
     # if the time is post midnight, then we calculate it from the

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: DateTime-Calendar-Japanese
-version: 0.03
+version: 0.04
 author:
   - Daisuke Maki E<lt>daisuke@cpan.orgE<gt>
 abstract: |-
@@ -10,7 +10,7 @@ requires:
   DateTime: 0
   DateTime::Calendar::Chinese: 0.02
   DateTime::Calendar::Japanese::Era: 0.04
-  DateTime::Event::Sunrise: 0
+  DateTime::Event::Sunrise: 0.05
   Params::Validate: 0
 recommends:
   perl: 5.6.1
@@ -19,5 +19,5 @@ conflicts: {}
 provides:
   DateTime::Calendar::Japanese:
     file: lib/DateTime/Calendar/Japanese.pm
-    version: 0.03
+    version: 0.04
 generated_by: Module::Build version 0.22

@@ -9,7 +9,7 @@ my $build = Module::Build->new(
         'DateTime'                          => 0,
         'DateTime::Calendar::Chinese'       => '0.02',
         'DateTime::Calendar::Japanese::Era' => '0.04',
-        'DateTime::Event::Sunrise'          => 0,
+        'DateTime::Event::Sunrise'          => '0.05',
         'Params::Validate'                  => 0,
     },
     recommends => {
