@@ -3,11 +3,11 @@ use strict;
 use vars qw(@ISA $VERSION);
 BEGIN
 {
-    $VERSION = '0.01';
+    $VERSION = '0.02';
     @ISA     = qw(DateTime::Calendar::Chinese);
 }
 use DateTime;
-use DateTime::Util::Calc qw(amod);
+use DateTime::Util::Calc qw(amod truncate_to_midday);
 use DateTime::Calendar::Chinese;
 use DateTime::Calendar::Japanese::Era;
 use DateTime::Event::Sunrise;
@@ -61,8 +61,47 @@ my %NewValidate = (
     },
     locale    => { type => Params::Validate::SCALAR() | Params::Validate::OBJECT(), optional => 1 },
     language  => { type => Params::Validate::SCALAR() | Params::Validate::OBJECT(), optional => 1 },
-
+    time_zone  => { type => Params::Validate::SCALAR() | Params::Validate::OBJECT(), default => 'Asia/Tokyo' },
 );
+
+sub _era2cycle
+{
+    my($era_name, $era_year) = @_;
+
+    my $era = DateTime::Calendar::Japanese::Era->lookup_by_id(
+        id => $era_name
+    ) or Carp::croak("Lookup of era name $era_name failed");
+
+    # it's darn hard to calculate the dates from the era years,
+    # so we first calculate a date that will always fall in the
+    # middle of the year, and then use the cycle/cycle_year
+    # from that object.
+
+    my $cc_date =
+        DateTime::Calendar::Chinese->from_object(object => $era->start);
+
+    my $ny_in_year =
+        DateTime::Event::Chinese->new_year_for_gregorian_year(datetime => $era->start);
+
+    my $elapsed_years = $cc_date->elapsed_years + $era_year;
+    if ($ny_in_year >= $cc_date->{gregorian}) {
+        $elapsed_years--;
+    }
+    my $cycle         = POSIX::floor( ($elapsed_years - 1) / 60) + 1;
+    my $cycle_year    = amod($elapsed_years, 60);
+
+#print STDERR 
+#    "era2cycle: \n",
+#    " start: ", $cc_date->{gregorian}->datetime,  "\n",
+#    " start_cycle: ", $cc_date->cycle, "\n",
+#    " start_cycle_year: ", $cc_date->cycle_year, "\n",
+#    " era_name: ", $era_name,  "\n",
+#    " era_year: ", $era_year,  "\n",
+#    " cycle: ", $cycle,  "\n",
+#    " cycle_year: ", $cycle_year, "\n"; 
+
+    return ($cycle, $cycle_year);
+}
 
 sub new
 {
@@ -76,26 +115,18 @@ sub new
     if (exists $args{era_name}) {
         my $era_name = delete $args{era_name};
         my $era_year = delete $args{era_year};
-        my $era = DateTime::Calendar::Japanese::Era->lookup_by_id(
-            id => $era_name
-        ) or Carp::croak("Lookup of era name $era_name failed");
 
-        # it's darn hard to calculate the dates from the era years,
-        # so we first calculate a date that will always fall in the
-        # middle of the year, and then use the cycle/cycle_year
-        # from that object.
-        my $year = $era->start->year + $era_year - 1;
-        my $dt   = DateTime->new(year => $year, month => 7);
-        my $jp   = $class->from_object(object => $dt);
+        @args{ qw(cycle cycle_year) } = _era2cycle($era_name, $era_year);
 
-        $args{cycle}      = $jp->cycle;
-        $args{cycle_year} = $jp->cycle_year;
+#        $args{cycle}      = $cc_date->cycle + $delta_cycle;
+#        $args{cycle_year} = $cycle_year;
     }
-    my($hour, $hour_quarter) = (delete $args{hour}, delete $args{hour_quarter});
-    my $self  = $class->SUPER::new(%args);
 
+    my($hour, $hour_quarter) = (delete $args{hour}, delete $args{hour_quarter});
+    my $self = $class->SUPER::new(%args);
     $self->{hour}         = $hour;
     $self->{hour_quarter} = $hour_quarter;
+    $self->_calc_era_components();
     $self->_calc_time_components();
     return $self;
 }
@@ -122,10 +153,41 @@ sub _calc_era_components
 
     my $era  = DateTime::Calendar::Japanese::Era->lookup_by_date(
         datetime => $self->{gregorian} );
-    my $year = ($self->{gregorian} - $era->start)->years + 1;
+    if ($era) {
+        my $midday = truncate_to_midday($self->{gregorian}->clone);
+        my $ny_this_gy = DateTime::Event::Chinese->new_year_for_gregorian_year(datetime => $midday);
+        my $ny_start_gy = DateTime::Event::Chinese->new_year_for_gregorian_year(datetime => $era->start);
 
-    $self->{era}      = $era;
-    $self->{era_year} = $year;
+
+        my $year = $midday->year() - $era->start->year() + 1;
+        # this date is before new year
+        if ($ny_this_gy->year != $ny_start_gy->year && $ny_this_gy <= $midday) {
+            $year++;
+        }
+
+        # start date is before new year
+        if ($ny_this_gy->year == $ny_start_gy->year &&
+            $self->{gregorian} >= $ny_start_gy &&
+            $era->start() < $ny_start_gy) {
+            $year++;
+        }
+
+        $self->{era}      = $era;
+        $self->{era_year} = $year;
+
+#print STDERR
+#    "_calc_era_components\n",
+#    "  \$self->elapsed_years: ", $self->elapsed_years, "\n",
+#    "  \$self->{gregorian}: ", $self->{gregorian}->datetime, " (", $self->{gregorian}->time_zone_long_name, ")\n",
+#    "  midday: ", $midday->datetime, " (", $midday->time_zone_long_name, ")\n",
+#    "  era->start: ", $era->start->datetime, " (", $era->start->time_zone_long_name, ")\n",
+#    "  \$ny_this_gy: ", $ny_this_gy->datetime, " (", $ny_this_gy->time_zone_long_name, ")\n",
+#    "  \$ny_start_gy: ", $ny_start_gy->datetime, " (", $ny_start_gy->time_zone_long_name, ")\n",
+#    "  era_year: ", $year, "\n";
+    } else {
+        $self->{era}      = undef;
+        $self->{era_year} = 0;
+    }
 }
 
 sub _calc_time_components
@@ -212,6 +274,34 @@ sub hour           { $_[0]->{hour}           }
 sub canonical_hour { $_[0]->{canonical_hour} }
 sub hour_quarter   { $_[0]->{hour_quarter}   }
 
+my %SetValidate;
+foreach my $key (keys %NewValidate) {
+    my %hash = %{$NewValidate{$key}};
+    delete $hash{default};
+    delete $hash{depends};
+    $hash{optional} = 1;
+    $SetValidate{$key} = \%hash;
+}
+
+sub set
+{
+    my $self = shift;
+    my %args = Params::Validate::validate(@_, \%SetValidate);
+
+    if (exists $args{era_name} || exists $args{era_year}) {
+        my $era_name = delete $args{era_name} || $self->era_name;
+        my $era_year = delete $args{era_year} || $self->era_year;
+
+        @args{ qw(cycle cycle_year) } = _era2cycle($era_name, $era_year);
+    }
+    my($hour, $hour_quarter) = (delete $args{hour}, delete $args{hour_quarter});
+    $self->SUPER::set(%args);
+    $self->{hour}         = $hour;
+    $self->{hour_quarter} = $hour_quarter;
+    $self->_calc_era_components();
+    $self->_calc_time_components();
+}
+
 1;
 
 __END__
@@ -262,36 +352,56 @@ DateTime::Calendar::Japanese - DateTime Extension for Traditional Japanese Calen
 
 =head1 DESCRIPTION
 
-The traditional Japanese Calendar, which was used from circa 692 A.D. to 
-1867 A.D., is based on the Chinese Calendar. The traditional Chinese
-Calendar is a lunisolar calendar based on exact astronomical events.
+This module implements the traditional Japanese Calendar, which was used
+from circa 692 A.D. to 1867 A.D. The traditional Japanese Calendar is a
+lunisolar calendar based on the Chinese Calendar. 
 
-=head1 DISCLAIMER
+On top of the lunisolar calendar, this module implements a simple time
+system used in the Edo period, which is a type of temporal hour system, 
+based on sunrise and sunset.
+
+=head1 CAVEATS/DISCLAIMERS
+
+=head2 CALENDAR "VERSION"
 
 Note that for each of these calendars there exist numerous different
 versions/revisions. The Japanese Calendar has at least 6 different
 revisions.
 
-Even though this module can handle modern dates, note that this module
-creates dates in the *traditional* calendar, NOT the modern gregorian
-calendar used now. For example the following date is NOT equivalent to
-Jan 1, 2004:
-
-  DateTime::Calendar::Japanese->new(
-    era_name => HEISEI,
-    era_year => 16,
-    month    => 1,
-    day      => 1
-  );
-
-The above being a month 1 day 1 on a lunisolar calendar, it's actually some
-date in Feb. 2004. (XXX - I might get around to writing DT::Format::Japanese)
-
 The Japanese Calendar that is implemented here uses the algorithm described
 in the book "Calendrical Computations" [1], which presumably describes the
-latest incarnation of these calendars. The time component is based on the
-little that I already knew about the traditional Japanese time system and
-numerous resources available on the net.
+latest incarnation of these calendars.
+
+=head2 ERA DISCREPANCIES FROM MODERN JAPANESE DATES
+
+Even though this module can handle modern dates, note that this module
+creates dates in the *traditional* calendar, NOT the modern gregorian
+calendar used in Japane since the Meiji era. Yet, we must honor the gregorian
+date in which an era started or ended. This means that the era  year
+calculations will probably be off from what you'd expect on a modern
+calendar.
+
+For example the following date is *NOT* Heisei 16, it's Heisei 15:
+
+  # this is gregorian
+  my $dt = DateTime->new(year => 2004, month => 1, day => 1);
+  my $jp = DateTime::Calendar::Japanese->from_object(object => $dt);
+  print "Era year: ", $jp->era_year, "\n";
+
+Why? Because we haven't yet reached the Chinese New Year for that sui
+(which is on 22 Jan, 2004). Of course, if this was a modern calendar,
+we would increment the year on 1 Jan 2004, but since it's technically
+the same year in this calendar, we can't increment the year.
+
+If you want to express modern Japanese calendars, you will need to use
+a DateTime::Format:: module on the vanilla DateTime object. 
+(As of this writing there is no DateTime::Format::Japanese on CPAN, but
+if nobody gets around to it, I plan on implementing it one of these days)
+
+=head2 TIME COMPONENTS
+
+The time component is based on the little that I already knew about the
+traditional Japanese time system and numerous resources available on the net.
 
 As for the Japanese time system, not much detail was available to me.
 I searched in various resources on the net and used a combined alogorithm
@@ -301,10 +411,8 @@ used during the Edo period (1600's - 1800's).
 
 If there are any corrections, please let me know.
 
-=head1 THE JAPANESE ERA SYSTEM
-
-Eras are a unique system that are used widely through Asia (XXX - This is unconfirmed,
-but I believe Japan is one of the only countries that uses
+Also note that this module Currently assumes that the sunrise/sunset hours
+are calculated based on Tokyo latitude/longitude.
 
 =head1 THE TRADITIONAL JAPANESE (EDO) TIME SYSTEM
 
@@ -391,6 +499,8 @@ rest of the parameters are the same, and they are: "month", "leap_month",
 
   # DateTime::Calendar::Chinese style
   my $dt = DateTime::Calendar::Japanese->new(
+    cycle        => 78,
+    cycle_year   => 20
   );
  
 =head2 now
@@ -427,9 +537,12 @@ associated with this calendar.
 
 =head2 era_year
 
-Returns the number of years in the current era. 08 Jan 1989 is the start of
-"Heisei" era, so 08 Jan 1989 to 31 Dec 1989 is Heisei 1. 01 Jan 1990 to
-31 Dec 1990 is Heisei 2, etc.
+Returns the number of years in the current era, as calculated by the
+traditional lunisolar calendar. Note that calculations will be different
+from those based on the modern calendar, as the date of New Year (which is
+when era years are incremented) differ from modern calendars. For example,
+based on the traditional calendar, SHOUWA3 (1926 - 1989) had only 63 years,
+not 64. See L<CAVEATS|/ERA DISCREPANCIES FROM MODERN JAPANESE DATES>
 
 =head2 hour
 
@@ -446,11 +559,6 @@ which counts from 9 to 4, and back to 9.
 =head2 hour_quarter
 
 Returns the quarter in the current hour (1 to 4).
-
-=head1 CAVEATS
-
-Currently assumes that the sunrise/sunset hours are calculated based on
-Tokyo latitude/longitude.
 
 =head1 AUTHOR
 

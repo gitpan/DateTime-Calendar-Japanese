@@ -2,6 +2,7 @@ Build.PL
 CHANGES
 lib/DateTime/Calendar/Japanese.pm
 LICENSE
+Makefile.PL
 MANIFEST
 META.yml
 t/01-sanity.t

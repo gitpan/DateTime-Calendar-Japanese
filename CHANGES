@@ -1,5 +1,13 @@
 Changes
 =======
 
+0.02 24 Jan 2004
+  - Set default time zone to "Asia/Tokyo"
+  - Require DateTime::Calendar::Chinese 0.02, which fixes a lot of bugs
+    and has elapsed_years()
+  - Require DateTime::Calendar::Japanese::Era 0.02, which fixes edge case
+  - Redo era math.
+  - Add/fix documentation
+
 0.01 12 Jan 2004
   - initial release
