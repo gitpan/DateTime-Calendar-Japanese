@@ -1,0 +1,32 @@
+This file contains message digests of all files listed in MANIFEST,
+signed via the Module::Signature module, version 0.37.
+
+To verify the content in this distribution, first make sure you have
+Module::Signature installed, then type:
+
+    % cpansign -v
+
+It would check each file's integrity, as well as the signature's
+validity.  If "==> Signature verified OK! <==" is not displayed,
+the distribution may already have been compromised, and you should
+not run its Makefile.PL or Build.PL.
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+SHA1 656544ae97f19b4aa824b37b016e68eba6a8575e Build.PL
+SHA1 4e80acdda817ee5a05fe589e0a4f32a72e99e662 CHANGES
+SHA1 3933b8775a7af6f0ae9dd661c838554bdc41fa63 LICENSE
+SHA1 d0f0a07a4560bb2846317c11488c404927603731 MANIFEST
+SHA1 1dc7fa636833d95fdf33fb79e5bcab7aebb92f35 META.yml
+SHA1 d59ed0a4ac998dbe20a0e7a7329b6a0773000de5 lib/DateTime/Calendar/Japanese.pm
+SHA1 0e4d5cd3e59b42aa465d42db5a3053b2bbc975ba t/01-sanity.t
+SHA1 e467bd77b89b1004aeee067ac2164f880652ad3f t/02-time.t
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.6 (GNU/Linux)
+Comment: For info see http://www.gnupg.org
+
+iD8DBQFAA3zOpIZqybP6lHMRAge/AJ0YZxKp9Ow9BvbkM3kU36l2ZGBfHACgiikr
+YHZ0KVPR8pYMBMQ9Cz5VDos=
+=nYPx
+-----END PGP SIGNATURE-----

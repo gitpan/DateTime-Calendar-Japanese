@@ -1,0 +1,10 @@
+Build.PL
+CHANGES
+lib/DateTime/Calendar/Japanese.pm
+LICENSE
+MANIFEST
+META.yml
+t/01-sanity.t
+t/02-time.t
+
+SIGNATURE    Added here by Module::Build
