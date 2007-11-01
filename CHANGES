@@ -1,6 +1,9 @@
 Changes
 =======
 
+0.06001 02 Nov 2007
+  - Add missing dependency to DT::Event::Sunrise
+
 0.06000 02 Nov 2007 ("Wow, Has It Been That Long?" Release)
   - Apply fixes from kdaiba
   - Add regression tests

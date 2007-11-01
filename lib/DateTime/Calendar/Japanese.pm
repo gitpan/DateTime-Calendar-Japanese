@@ -1,4 +1,4 @@
-# $Id: Japanese.pm 3781 2007-11-01 17:14:13Z lestrrat $
+# $Id: Japanese.pm 3782 2007-11-01 23:18:42Z lestrrat $
 #
 # Copyright (c) 2007 Daisuke Maki <daisuke@endeworks.jp>
 # All rights reserved.
@@ -9,7 +9,7 @@ use warnings;
 use vars qw(@ISA $VERSION);
 BEGIN
 {
-    $VERSION = '0.06000';
+    $VERSION = '0.06001';
     @ISA     = qw(DateTime::Calendar::Chinese);
 }
 use DateTime;
