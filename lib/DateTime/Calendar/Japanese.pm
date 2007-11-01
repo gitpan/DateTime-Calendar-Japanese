@@ -1,9 +1,15 @@
+# $Id: Japanese.pm 3781 2007-11-01 17:14:13Z lestrrat $
+#
+# Copyright (c) 2007 Daisuke Maki <daisuke@endeworks.jp>
+# All rights reserved.
+
 package DateTime::Calendar::Japanese;
 use strict;
+use warnings;
 use vars qw(@ISA $VERSION);
 BEGIN
 {
-    $VERSION = '0.05';
+    $VERSION = '0.06000';
     @ISA     = qw(DateTime::Calendar::Chinese);
 }
 use DateTime;
@@ -322,7 +328,7 @@ sub _calc_japanese_time
     my $one_hour     = ($max_dt - $base_dt)->multiply(1/6);
     my $quarter_hour = $one_hour * 0.25;
 
-    my @h_separators = map { $base_dt + $one_hour * $_ } 0..5 ;
+    my @h_separators = map { $base_dt + $one_hour * $_ } 0..6 ;
     foreach my $h_offset (0..$#h_separators - 1) {
         my $h_begin = $h_separators[$h_offset];
         my $h_end   = $h_separators[$h_offset + 1];
@@ -330,7 +336,7 @@ sub _calc_japanese_time
        if ($h_begin <= $dt && $dt < $h_end) {
             $hour = $base_hour + $h_offset;
 
-            my @q_separators = map { $h_begin + $quarter_hour * $_ } 0..4;
+            my @q_separators = map { $h_begin + $quarter_hour * $_ } 0..5;
             foreach my $quarter_offset (0..$#q_separators - 1) {
                 my $quarter_begin = $q_separators[$quarter_offset];
                 my $quarter_end   = $q_separators[$quarter_offset + 1];
@@ -340,7 +346,6 @@ sub _calc_japanese_time
                     $hour_quarter = $quarter_offset + 1;
                     last;
                 }
-                last;
             }
         }
     }
@@ -616,6 +621,10 @@ of cycle and cycle_year
 
 These constructors are exactly the same as those in DateTime::Calendar::Chinese
 
+=head2 set
+
+Sets DateTime components.
+
 =head2 utc_rd_values
 
 Returns the current UTC Rata Die days, seconds, and nanoseconds as a three
@@ -671,7 +680,14 @@ Returns the quarter in the current hour (1 to 4).
 
 =head1 AUTHOR
 
-Daisuke Maki E<lt>daisuke@cpan.orgE<gt>
+Copyright (c) 2004-2007 Daisuke Maki E<lt>daisuke@endeworks.jp<gt>
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+See http://www.perl.com/perl/misc/Artistic.html
 
 =head1 REFERENCES
 

@@ -1,6 +1,12 @@
 Changes
 =======
 
+0.06000 02 Nov 2007 ("Wow, Has It Been That Long?" Release)
+  - Apply fixes from kdaiba
+  - Add regression tests
+  - Migrate to Module::Install
+  - Add POD, Kwalitee tests
+
 0.05 08 Feb 2004
   - Fixed buglet when specifying hour < 6
 

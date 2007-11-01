@@ -1,23 +1,19 @@
---- #YAML:1.0
-name: DateTime-Calendar-Japanese
-version: 0.05
-author:
-  - Daisuke Maki E<lt>daisuke@cpan.orgE<gt>
-abstract: |-
-  DateTime Extension for Traditional Japanese Calendars
+--- 
+abstract: DateTime Extension for Traditional Japanese Calendars
+author: Copyright (c) 2004-2007 Daisuke Maki <daisuke@endeworks.jp<gt>
+distribution_type: module
+generated_by: Module::Install version 0.67
 license: perl
-requires:
-  DateTime: 0
-  DateTime::Calendar::Chinese: 0.02
-  DateTime::Calendar::Japanese::Era: 0.04
-  DateTime::Event::Sunrise: 0.05
-  Params::Validate: 0
-recommends:
-  perl: 5.6.1
-build_requires: {}
-conflicts: {}
-provides:
-  DateTime::Calendar::Japanese:
-    file: lib/DateTime/Calendar/Japanese.pm
-    version: 0.05
-generated_by: Module::Build version 0.22
+meta-spec: 
+  url: http://module-build.sourceforge.net/META-spec-v1.3.html
+  version: 1.3
+name: DateTime-Calendar-Japanese
+no_index: 
+  directory: 
+    - inc
+    - t
+requires: 
+  DateTime::Calendar::Chinese: 0
+  DateTime::Calendar::Japanese::Era: 0
+  DateTime::Event::Chinese: 0
+version: 0.06000
